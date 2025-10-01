@@ -75,15 +75,26 @@ class _RoomsPageState extends State<RoomsPage> {
             itemCount: rooms.length,
             itemBuilder: (context, index) {
               final room = rooms[index];
-              return ListTile(
-                leading: const Icon(Icons.meeting_room),
-                title: Text(room.name),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RoomDetailsPage(room: room),
-                    ),
+              return FutureBuilder(
+                future: useCases.getAllStudentsInRoom(room.id),
+                builder: (context, studentSnapshot) {
+                  int count = 0;
+                  if (studentSnapshot.hasData) {
+                    count = studentSnapshot.data!.length;
+                  }
+
+                  return ListTile(
+                    leading: const Icon(Icons.meeting_room),
+                    title: Text(room.name),
+                    subtitle: Text("Students: $count"),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RoomDetailsPage(room: room),
+                        ),
+                      );
+                    },
                   );
                 },
               );

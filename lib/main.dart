@@ -4,6 +4,7 @@ import 'package:hostel_mess_2/core/di/dependency_injection.dart';
 import 'package:hostel_mess_2/core/domain/usecases/student_repo_usecase.dart';
 import 'package:hostel_mess_2/features/home_page/nav_bar_screen.dart';
 import 'package:hostel_mess_2/features/home_page/pages/students_page/bloc/students_page_bloc.dart';
+import 'package:hostel_mess_2/features/home_page/pages/students_page/bloc/students_page_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

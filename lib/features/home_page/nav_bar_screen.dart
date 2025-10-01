@@ -1,11 +1,8 @@
+
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hostel_mess_2/core/di/dependency_injection.dart';
-import 'package:hostel_mess_2/core/domain/usecases/student_repo_usecase.dart';
 import 'package:hostel_mess_2/features/home_page/pages/food_page.dart';
 import 'package:hostel_mess_2/features/home_page/pages/reports_page.dart';
 import 'package:hostel_mess_2/features/home_page/pages/rooms_page.dart';
-import 'package:hostel_mess_2/features/home_page/pages/students_page/bloc/students_page_bloc.dart';
 import 'package:hostel_mess_2/features/home_page/pages/students_page/students_page.dart';
 
 class NavBarScreen extends StatefulWidget {
@@ -19,13 +16,7 @@ class _NavBarScreenState extends State<NavBarScreen> {
   int _selectedIndex = 0;
 
   List<Widget> get _pages => [
-        // ✅ StudentsPage wrapped with StudentBloc
-        BlocProvider(
-          create: (_) =>
-              StudentBloc(locator<StudentOperationsUseCases>())
-                ..add(const LoadStudentsEvent()),
-          child: const StudentsPage(),
-        ),
+        const StudentsPage(),
 
         // ✅ RoomsPage will get RoomsBloc later
         const RoomsPage(),

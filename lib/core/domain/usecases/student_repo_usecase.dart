@@ -8,27 +8,110 @@ class StudentOperationsUseCases {
   final StudentRepository repository;
   StudentOperationsUseCases(this.repository);
 
-  // Add
-  Future<int> addRoom(String name) => repository.addRoom(name);
-  Future<int> addStudent(String name, String reg, {int? roomId}) =>
-      repository.addStudent(name, reg, roomId);
-  Future<int> addFood(String name) => repository.addFood(name);
-  Future<int> addStudentFood(int studentId, int foodId, DateTime date) =>
-      repository.addStudentFood(studentId, foodId, date);
+  // ✅ Add
+  Future<int> addRoom(String name) async {
+    try {
+      return await repository.addRoom(name);
+    } catch (e) {
+      throw Exception("Failed to add room: $e");
+    }
+  }
 
-  // Delete
-  Future<int> deleteRoom(int id) => repository.deleteRoom(id);
-  Future<int> deleteStudent(int id) => repository.deleteStudent(id);
-  Future<int> deleteFood(int id) => repository.deleteFood(id);
-  Future<int> deleteStudentFoodRecord(int recordId) =>
-      repository.deleteStudentFoodRecord(recordId);
+  Future<int> addStudent(String name, String reg, {int? roomId}) async {
+    try {
+      return await repository.addStudent(name, reg, roomId);
+    } catch (e) {
+      throw Exception("Failed to add student: $e");
+    }
+  }
 
-  // Get
-  Future<List<StudentEntity>> getAllStudents() => repository.getAllStudents();
-  Future<List<StudentEntity>> getAllStudentsInRoom(int roomId) =>
-      repository.getAllStudentsInRoom(roomId);
-  Future<List<FoodEntity>> getAllFood() => repository.getAllFood();
-  Future<List<RoomEntity>> getAllRooms() => repository.getAllRooms();
-  Future<List<StudentFoodRecordEntity>> getStudentsByDate(DateTime date) =>
-      repository.getStudentsByDate(date);
+  Future<int> addFood(String name) async {
+    try {
+      return await repository.addFood(name);
+    } catch (e) {
+      throw Exception("Failed to add food: $e");
+    }
+  }
+
+  Future<int> addStudentFood(int studentId, int foodId, DateTime date) async {
+    try {
+      return await repository.addStudentFood(studentId, foodId, date);
+    } catch (e) {
+      throw Exception("Failed to add student food record: $e");
+    }
+  }
+
+  // ✅ Delete
+  Future<int> deleteRoom(int id) async {
+    try {
+      return await repository.deleteRoom(id);
+    } catch (e) {
+      throw Exception("Failed to delete room: $e");
+    }
+  }
+
+  Future<int> deleteStudent(int id) async {
+    try {
+      return await repository.deleteStudent(id);
+    } catch (e) {
+      throw Exception("Failed to delete student: $e");
+    }
+  }
+
+  Future<int> deleteFood(int id) async {
+    try {
+      return await repository.deleteFood(id);
+    } catch (e) {
+      throw Exception("Failed to delete food: $e");
+    }
+  }
+
+  Future<int> deleteStudentFoodRecord(int recordId) async {
+    try {
+      return await repository.deleteStudentFoodRecord(recordId);
+    } catch (e) {
+      throw Exception("Failed to delete student food record: $e");
+    }
+  }
+
+  // ✅ Get
+  Future<List<StudentEntity>> getAllStudents() async {
+    try {
+      return await repository.getAllStudents();
+    } catch (e) {
+      throw Exception("Failed to fetch students: $e");
+    }
+  }
+
+  Future<List<StudentEntity>> getAllStudentsInRoom(int roomId) async {
+    try {
+      return await repository.getAllStudentsInRoom(roomId);
+    } catch (e) {
+      throw Exception("Failed to fetch students in room $roomId: $e");
+    }
+  }
+
+  Future<List<FoodEntity>> getAllFood() async {
+    try {
+      return await repository.getAllFood();
+    } catch (e) {
+      throw Exception("Failed to fetch food: $e");
+    }
+  }
+
+  Future<List<RoomEntity>> getAllRooms() async {
+    try {
+      return await repository.getAllRooms();
+    } catch (e) {
+      throw Exception("Failed to fetch rooms: $e");
+    }
+  }
+
+  Future<List<StudentFoodRecordEntity>> getStudentsByDate(DateTime date) async {
+    try {
+      return await repository.getStudentsByDate(date);
+    } catch (e) {
+      throw Exception("Failed to fetch students by date $date: $e");
+    }
+  }
 }

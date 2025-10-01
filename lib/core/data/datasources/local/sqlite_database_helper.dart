@@ -11,54 +11,92 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDB() async {
-    try {
-      String path = join(await getDatabasesPath(), 'hostel_mess.db');
-      return await openDatabase(
-        path,
-        version: 1,
-        onCreate: (db, version) async {
-          await db.execute('''
-            CREATE TABLE room (
-              id INTEGER PRIMARY KEY AUTOINCREMENT, 
-              name TEXT NOT NULL
-            )
-          ''');
+ Future<Database> _initDB() async {
+  try {
+    String path = join(await getDatabasesPath(), 'hostel_mess.db');
+    return await openDatabase(
+      path,
+      version: 2, // 🔥 bump version
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE room (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            name TEXT NOT NULL UNIQUE
+          )
+        ''');
 
+        await db.execute('''
+          CREATE TABLE student (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL, 
+            reg TEXT UNIQUE NOT NULL,
+            room_id INTEGER,
+            FOREIGN KEY (room_id) REFERENCES room (id) ON DELETE SET NULL
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE food (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            name TEXT NOT NULL
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE student_food (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            food_id INTEGER NOT NULL,
+            date INTEGER NOT NULL,
+            FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE,
+            FOREIGN KEY (food_id) REFERENCES food (id) ON DELETE CASCADE
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // 1. Create a new table with UNIQUE constraint
           await db.execute('''
-            CREATE TABLE student (
+            CREATE TABLE room_new (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL, 
-              reg TEXT UNIQUE NOT NULL,
-              room_id INTEGER,
-              FOREIGN KEY (room_id) REFERENCES room (id) ON DELETE SET NULL
+              name TEXT NOT NULL UNIQUE
             )
           ''');
 
+          // 2. Insert unique rooms, keeping the lowest id per name
           await db.execute('''
-            CREATE TABLE food (
-              id INTEGER PRIMARY KEY AUTOINCREMENT, 
-              name TEXT NOT NULL
-            )
+            INSERT INTO room_new (id, name)
+            SELECT MIN(id), name
+            FROM room
+            GROUP BY name
           ''');
 
+          // 3. Re-map students from duplicate rooms to surviving ids
           await db.execute('''
-            CREATE TABLE student_food (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              student_id INTEGER NOT NULL,
-              food_id INTEGER NOT NULL,
-              date INTEGER NOT NULL,
-              FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE,
-              FOREIGN KEY (food_id) REFERENCES food (id) ON DELETE CASCADE
+            UPDATE student
+            SET room_id = (
+              SELECT MIN(r2.id)
+              FROM room r2
+              WHERE r2.name = (
+                SELECT name FROM room WHERE id = student.room_id
+              )
             )
+            WHERE room_id IS NOT NULL
           ''');
-        },
-      );
-    } catch (e) {
-      print("❌ DB Init Error: $e");
-      rethrow; // You might want to handle this differently
-    }
+
+          // 4. Drop old room table
+          await db.execute('DROP TABLE room');
+
+          // 5. Rename new table to room
+          await db.execute('ALTER TABLE room_new RENAME TO room');
+        }
+      },
+    );
+  } catch (e) {
+    rethrow; // Let the caller handle DB init errors
   }
+}
+
 
   // ---------- Safe CRUD Methods ----------
 
@@ -68,8 +106,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.insert('room', {'name': name});
     } catch (e) {
-      print("❌ addRoom error: $e");
-      return -1;
+      throw Exception("addRoom failed: $e");
     }
   }
 
@@ -79,8 +116,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.insert('student', {'name': name, 'reg': reg, 'room_id': roomId});
     } catch (e) {
-      print("❌ addStudent error: $e");
-      return -1;
+      throw Exception("addStudent failed: $e");
     }
   }
 
@@ -90,8 +126,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.insert('food', {'name': name});
     } catch (e) {
-      print("❌ addFood error: $e");
-      return -1;
+      throw Exception("addFood failed: $e");
     }
   }
 
@@ -105,8 +140,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
         'date': date.millisecondsSinceEpoch,
       });
     } catch (e) {
-      print("❌ addStudentFoodRecord error: $e");
-      return -1;
+      throw Exception("addStudentFoodRecord failed: $e");
     }
   }
 
@@ -116,8 +150,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.delete('room', where: 'id = ?', whereArgs: [id]);
     } catch (e) {
-      print("❌ deleteRoom error: $e");
-      return -1;
+      throw Exception("deleteRoom failed: $e");
     }
   }
 
@@ -127,8 +160,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.delete('student', where: 'id = ?', whereArgs: [id]);
     } catch (e) {
-      print("❌ deleteStudent error: $e");
-      return -1;
+      throw Exception("deleteStudent failed: $e");
     }
   }
 
@@ -138,8 +170,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.delete('food', where: 'id = ?', whereArgs: [id]);
     } catch (e) {
-      print("❌ deleteFood error: $e");
-      return -1;
+      throw Exception("deleteFood failed: $e");
     }
   }
 
@@ -149,8 +180,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.delete('student_food', where: 'id = ?', whereArgs: [recordId]);
     } catch (e) {
-      print("❌ deleteStudentFoodRecord error: $e");
-      return -1;
+      throw Exception("deleteStudentFoodRecord failed: $e");
     }
   }
 
@@ -167,8 +197,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
 
       return result.map((row) => row['food_id'] as int).toList();
     } catch (e) {
-      print("❌ getFoodIdsEatenByStudent error: $e");
-      return [];
+      throw Exception("getFoodIdsEatenByStudent failed: $e");
     }
   }
 
@@ -183,8 +212,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
         WHERE DATE(student_food.date / 1000, 'unixepoch') = DATE(? / 1000, 'unixepoch')
       ''', [date.millisecondsSinceEpoch]);
     } catch (e) {
-      print("❌ getStudentsWhoAteOnDate error: $e");
-      return [];
+      throw Exception("getStudentsWhoAteOnDate failed: $e");
     }
   }
 
@@ -200,8 +228,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
         WHERE DATE(student_food.date / 1000, 'unixepoch') = DATE(? / 1000, 'unixepoch')
       ''', [date.millisecondsSinceEpoch]);
     } catch (e) {
-      print("❌ getStudentMealsOnDate error: $e");
-      return [];
+      throw Exception("getStudentMealsOnDate failed: $e");
     }
   }
 
@@ -211,8 +238,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.query('student', where: 'room_id = ?', whereArgs: [roomId]);
     } catch (e) {
-      print("❌ getAllStudentsInRoom error: $e");
-      return [];
+      throw Exception("getAllStudentsInRoom failed: $e");
     }
   }
 
@@ -222,8 +248,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.query('student');
     } catch (e) {
-      print("❌ getAllStudents error: $e");
-      return [];
+      throw Exception("getAllStudents failed: $e");
     }
   }
 
@@ -233,8 +258,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.query('food');
     } catch (e) {
-      print("❌ getAllFood error: $e");
-      return [];
+      throw Exception("getAllFood failed: $e");
     }
   }
 
@@ -244,8 +268,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
       final db = await database;
       return await db.query('room');
     } catch (e) {
-      print("❌ getAllRooms error: $e");
-      return [];
+      throw Exception("getAllRooms failed: $e");
     }
   }
 
@@ -261,8 +284,7 @@ class SQLiteLocalDatabaseHelper implements LocalDatabaseHelper {
         ORDER BY student_food.date DESC
       ''', [studentId]);
     } catch (e) {
-      print("❌ getStudentMealHistory error: $e");
-      return [];
+      throw Exception("getStudentMealHistory failed: $e");
     }
   }
 }
